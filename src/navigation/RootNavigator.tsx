@@ -1,10 +1,19 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { ActivityIndicator, View } from 'react-native';
+import { useAuth } from '../hooks/useAuth';
 import AuthStack from './AuthStack';
 import MainTabs from './MainTabs';
 
 export default function RootNavigator() {
-  // Placeholder auth state — wire to Supabase session once backend is ready
-  const [isAuthenticated] = useState(false);
+  const { session, loading } = useAuth();
 
-  return isAuthenticated ? <MainTabs /> : <AuthStack />;
+  if (loading) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#080810' }}>
+        <ActivityIndicator color="#C9A84C" size="large" />
+      </View>
+    );
+  }
+
+  return session ? <MainTabs /> : <AuthStack />;
 }

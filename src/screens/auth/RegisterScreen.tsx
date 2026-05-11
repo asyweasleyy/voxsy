@@ -14,11 +14,11 @@ import {
   StatusBar,
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { signIn } from '../../services/auth.service';
+import { signUp } from '../../services/auth.service';
 import { AuthStackParamList } from '../../navigation/AuthStack';
 
 type Props = {
-  navigation: StackNavigationProp<AuthStackParamList, 'Login'>;
+  navigation: StackNavigationProp<AuthStackParamList, 'Register'>;
 };
 
 const { width } = Dimensions.get('window');
@@ -44,7 +44,7 @@ const SERIF = Platform.OS === 'ios' ? 'Georgia' : 'serif';
 function VinylRings({ pulse }: { pulse: Animated.Value }) {
   return (
     <Animated.View style={[styles.vinylWrap, { transform: [{ scale: pulse }] }]}>
-      {([180, 140, 104, 68, 36] as const).map((size, i) => (
+      {([160, 122, 88, 56, 28] as const).map((size, i) => (
         <View
           key={size}
           style={{
@@ -53,7 +53,7 @@ function VinylRings({ pulse }: { pulse: Animated.Value }) {
             height: size,
             borderRadius: size / 2,
             borderWidth: i === 4 ? 1.5 : 1,
-            borderColor: `rgba(201,168,76,${[0.06, 0.1, 0.16, 0.28, 0.55][i]})`,
+            borderColor: `rgba(201,168,76,${[0.05, 0.09, 0.15, 0.28, 0.6][i]})`,
           }}
         />
       ))}
@@ -107,14 +107,34 @@ function AuthInput({
   );
 }
 
-function mapError(msg: string): string {
-  if (msg.includes('Invalid login credentials')) return 'E-posta veya şifre hatalı.';
-  if (msg.includes('Email not confirmed')) return 'E-postanı önce onayla.';
-  if (msg.includes('Too many requests')) return 'Çok fazla deneme. Biraz bekle.';
-  return 'Giriş yapılamadı. Tekrar dene.';
+function PasswordStrength({ password }: { password: string }) {
+  if (!password) return null;
+  let score = 0;
+  if (password.length >= 8) score++;
+  if (/[A-Z]/.test(password)) score++;
+  if (/[0-9]/.test(password)) score++;
+  if (/[^A-Za-z0-9]/.test(password)) score++;
+  const label = ['', 'Zayıf', 'Orta', 'Güçlü', 'Çok Güçlü'][score];
+  const barColor = score <= 1 ? C.error : score === 2 ? '#F0A500' : '#52D98F';
+  return (
+    <View style={styles.strengthRow}>
+      {[0, 1, 2, 3].map(i => (
+        <View key={i} style={[styles.strengthBar, { backgroundColor: i < score ? barColor : 'rgba(255,255,255,0.08)' }]} />
+      ))}
+      <Text style={styles.strengthLabel}>{label}</Text>
+    </View>
+  );
 }
 
-export default function LoginScreen({ navigation }: Props) {
+function mapError(msg: string): string {
+  if (msg.includes('already registered') || msg.includes('already been registered')) return 'Bu e-posta zaten kayıtlı.';
+  if (msg.includes('invalid email') || msg.includes('Invalid email')) return 'Geçerli bir e-posta gir.';
+  if (msg.includes('Password should') || msg.includes('weak password')) return 'Şifre çok zayıf.';
+  return 'Kayıt olurken hata oluştu. Tekrar dene.';
+}
+
+export default function RegisterScreen({ navigation }: Props) {
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
@@ -132,22 +152,25 @@ export default function LoginScreen({ navigation }: Props) {
     ]).start();
     Animated.loop(
       Animated.sequence([
-        Animated.timing(pulseAnim, { toValue: 1.04, duration: 2800, useNativeDriver: true }),
-        Animated.timing(pulseAnim, { toValue: 1, duration: 2800, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1.04, duration: 3000, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 3000, useNativeDriver: true }),
       ])
     ).start();
   }, []);
 
-  const handleLogin = async () => {
-    if (!email.trim() || !password) {
-      setError('E-posta ve şifre gerekli.');
-      return;
-    }
+  const handleRegister = async () => {
+    if (!name.trim()) { setError('Adını gir.'); return; }
+    if (!email.trim()) { setError('E-posta adresini gir.'); return; }
+    if (password.length < 8) { setError('Şifre en az 8 karakter olmalı.'); return; }
     setError('');
     setLoading(true);
-    const { error } = await signIn(email.trim(), password);
+    const { error } = await signUp(email.trim(), password, name.trim());
     setLoading(false);
-    if (error) setError(mapError(error.message));
+    if (error) {
+      setError(mapError(error.message));
+    } else {
+      navigation.navigate('InstrumentSelection');
+    }
   };
 
   return (
@@ -164,17 +187,27 @@ export default function LoginScreen({ navigation }: Props) {
 
           <Animated.View style={[styles.brand, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
             <Text style={styles.logo}>VOXSY</Text>
-            <Text style={styles.tagline}>Müzik pratiğini günlükle</Text>
+            <Text style={styles.tagline}>Müzik yolculuğuna başla</Text>
           </Animated.View>
 
           <Animated.View style={[styles.card, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
-            <Text style={styles.cardTitle}>Giriş Yap</Text>
+            <Text style={styles.cardTitle}>Hesap Oluştur</Text>
 
             {error ? (
               <View style={styles.errorBox}>
                 <Text style={styles.errorText}>{error}</Text>
               </View>
             ) : null}
+
+            <AuthInput
+              value={name}
+              onChangeText={setName}
+              placeholder="Adın Soyadın"
+              autoCapitalize="words"
+              editable={!loading}
+            />
+
+            <View style={styles.gap} />
 
             <AuthInput
               value={email}
@@ -189,7 +222,7 @@ export default function LoginScreen({ navigation }: Props) {
             <AuthInput
               value={password}
               onChangeText={setPassword}
-              placeholder="Şifre"
+              placeholder="Şifre (en az 8 karakter)"
               secureTextEntry={!showPw}
               editable={!loading}
               rightElement={
@@ -199,17 +232,19 @@ export default function LoginScreen({ navigation }: Props) {
               }
             />
 
-            <TouchableOpacity style={styles.primaryBtn} onPress={handleLogin} activeOpacity={0.85} disabled={loading}>
+            <PasswordStrength password={password} />
+
+            <TouchableOpacity style={styles.primaryBtn} onPress={handleRegister} activeOpacity={0.85} disabled={loading}>
               {loading
                 ? <ActivityIndicator color={C.bg} size="small" />
-                : <Text style={styles.primaryBtnText}>Giriş Yap</Text>}
+                : <Text style={styles.primaryBtnText}>Kayıt Ol</Text>}
             </TouchableOpacity>
           </Animated.View>
 
           <Animated.View style={[styles.footer, { opacity: fadeAnim }]}>
-            <Text style={styles.footerText}>Hesabın yok mu? </Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-              <Text style={styles.footerLink}>Kayıt Ol</Text>
+            <Text style={styles.footerText}>Zaten hesabın var mı? </Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+              <Text style={styles.footerLink}>Giriş Yap</Text>
             </TouchableOpacity>
           </Animated.View>
 
@@ -232,14 +267,14 @@ const styles = StyleSheet.create({
     left: width / 2 - 150,
   },
   scroll: { flexGrow: 1, paddingHorizontal: 24, paddingBottom: 48 },
-  hero: { height: 180, alignItems: 'center', justifyContent: 'center', marginTop: 44 },
-  vinylWrap: { width: 180, height: 180, alignItems: 'center', justifyContent: 'center' },
+  hero: { height: 160, alignItems: 'center', justifyContent: 'center', marginTop: 36 },
+  vinylWrap: { width: 160, height: 160, alignItems: 'center', justifyContent: 'center' },
   vinylCenter: {
-    width: 24, height: 24, borderRadius: 12,
+    width: 22, height: 22, borderRadius: 11,
     backgroundColor: C.gold, alignItems: 'center', justifyContent: 'center',
   },
-  vinylLabel: { color: C.bg, fontSize: 11, fontFamily: SERIF, fontWeight: '700' },
-  brand: { alignItems: 'center', marginTop: 14, marginBottom: 28 },
+  vinylLabel: { color: C.bg, fontSize: 10, fontFamily: SERIF, fontWeight: '700' },
+  brand: { alignItems: 'center', marginTop: 12, marginBottom: 24 },
   logo: { fontSize: 36, fontFamily: SERIF, color: C.text, letterSpacing: 10 },
   tagline: { marginTop: 6, fontSize: 13, color: C.textMuted, letterSpacing: 1.5 },
   card: {
@@ -272,6 +307,9 @@ const styles = StyleSheet.create({
   inputRight: { paddingRight: 14 },
   eyeBtn: { color: C.textMuted, fontSize: 16 },
   gap: { height: 12 },
+  strengthRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8, marginBottom: 4, gap: 4 },
+  strengthBar: { flex: 1, height: 3, borderRadius: 2 },
+  strengthLabel: { fontSize: 11, color: C.textMuted, marginLeft: 4, width: 64 },
   primaryBtn: {
     height: 54,
     borderRadius: 14,
