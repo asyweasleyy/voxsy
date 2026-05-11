@@ -22,6 +22,7 @@ export interface Database {
           emoji?: string;
           created_at?: string;
         };
+        Relationships: [];
       };
       user_instruments: {
         Row: {
@@ -39,6 +40,14 @@ export interface Database {
           instrument_id?: string;
           created_at?: string;
         };
+        Relationships: [
+          {
+            foreignKeyName: 'user_instruments_instrument_id_fkey';
+            columns: ['instrument_id'];
+            referencedRelation: 'instruments';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       journal_entries: {
         Row: {
@@ -62,6 +71,14 @@ export interface Database {
           date?: string;
           created_at?: string;
         };
+        Relationships: [
+          {
+            foreignKeyName: 'journal_entries_instrument_id_fkey';
+            columns: ['instrument_id'];
+            referencedRelation: 'instruments';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       journal_items: {
         Row: {
@@ -88,6 +105,14 @@ export interface Database {
           position?: number;
           created_at?: string;
         };
+        Relationships: [
+          {
+            foreignKeyName: 'journal_items_entry_id_fkey';
+            columns: ['entry_id'];
+            referencedRelation: 'journal_entries';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       journal_videos: {
         Row: {
@@ -111,6 +136,14 @@ export interface Database {
           title?: string | null;
           created_at?: string;
         };
+        Relationships: [
+          {
+            foreignKeyName: 'journal_videos_entry_id_fkey';
+            columns: ['entry_id'];
+            referencedRelation: 'journal_entries';
+            referencedColumns: ['id'];
+          },
+        ];
       };
     };
     Views: Record<string, never>;
