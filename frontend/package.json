@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "main": "index.ts",
   "scripts": {
-    "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
-    "web": "expo start --web",
+    "start": "node ./scripts/expo-cli-system-ca.js start",
+    "android": "node ./scripts/expo-cli-system-ca.js start --android",
+    "ios": "node ./scripts/expo-cli-system-ca.js start --ios",
+    "web": "node ./scripts/expo-cli-system-ca.js start --web",
     "test": "jest --watchAll=false",
     "test:coverage": "jest --coverage --watchAll=false"
   },
