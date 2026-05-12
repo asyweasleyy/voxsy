@@ -1,8 +1,11 @@
+import * as ImagePicker from 'expo-image-picker';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Animated,
   KeyboardAvoidingView,
+  Modal,
   PanResponder,
   Platform,
   Pressable,
@@ -13,11 +16,14 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { VideoPlayerModal } from '../../components/VideoPlayerModal';
+import { VideoThumbnailCard } from '../../components/VideoThumbnailCard';
 import { useAuth } from '../../hooks/useAuth';
 import { useJournal } from '../../hooks/useJournal';
 import { useVideos } from '../../hooks/useVideos';
 import { getUserInstruments, type Instrument } from '../../services/instruments.service';
 import type { JournalItem, JournalItemType } from '../../services/journal.service';
+import type { JournalVideo } from '../../services/video.service';
 
 const C = {
   bg: '#080810',
@@ -238,7 +244,19 @@ export default function BugunScreen() {
   const [instrLoading, setInstrLoading] = useState(true);
 
   const { entry, loading: journalLoading, loadEntry, ensureEntry, handleAdd, handleUpdate, handleDelete } = useJournal(user?.id);
-  const { videos } = useVideos();
+  const { videos, loadVideos, addNewVideo, removeVideo } = useVideos();
+
+  // Video picker + title modal state
+  const [pendingUri, setPendingUri] = useState<string | null>(null);
+  const [titleInput, setTitleInput] = useState('');
+  const [titleModalVisible, setTitleModalVisible] = useState(false);
+  const [isSavingVideo, setIsSavingVideo] = useState(false);
+
+  // Player state
+  const [playerVideo, setPlayerVideo] = useState<JournalVideo | null>(null);
+  const [playerVisible, setPlayerVisible] = useState(false);
+  // Track per-video view counts locally (not persisted to DB in this version)
+  const [viewCounts, setViewCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
     if (!user) return;
@@ -258,9 +276,60 @@ export default function BugunScreen() {
       if (e) {
         setEntryId(e.id);
         loadEntry(instrument.id, dateStr);
+        loadVideos(e.id);
       }
     });
   }, [user, instruments, activeIdx, dateStr]);
+
+  const handlePickVideo = useCallback(async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert(
+        'İzin Gerekli',
+        'Video seçmek için galeri erişim izni gerekiyor. Ayarlar > Voxsy bölümünden izin verebilirsiniz.',
+        [{ text: 'Tamam' }],
+      );
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['videos'],
+      quality: 1,
+      allowsEditing: false,
+    });
+
+    if (result.canceled || result.assets.length === 0) return;
+
+    setPendingUri(result.assets[0].uri);
+    setTitleInput('');
+    setTitleModalVisible(true);
+  }, []);
+
+  const handleSaveVideo = useCallback(async () => {
+    if (!pendingUri || !entryId) return;
+    setIsSavingVideo(true);
+    try {
+      await addNewVideo(entryId, pendingUri, titleInput.trim() || undefined);
+    } finally {
+      setIsSavingVideo(false);
+      setTitleModalVisible(false);
+      setPendingUri(null);
+      setTitleInput('');
+    }
+  }, [pendingUri, entryId, titleInput, addNewVideo]);
+
+  const handleOpenPlayer = useCallback((video: JournalVideo) => {
+    setPlayerVideo(video);
+    setPlayerVisible(true);
+  }, []);
+
+  const handlePlayerOpened = useCallback(() => {
+    if (!playerVideo) return;
+    setViewCounts(prev => ({
+      ...prev,
+      [playerVideo.id]: (prev[playerVideo.id] ?? 0) + 1,
+    }));
+  }, [playerVideo]);
 
   const onAdd = useCallback(
     (type: JournalItemType, content: string) => {
@@ -328,16 +397,102 @@ export default function BugunScreen() {
           )}
 
           <View style={st.videoSection}>
-            <Text style={st.videoTitle}>Videolar</Text>
-            {videos.length === 0 ? (
+            <View style={st.videoHeader}>
+              <Text style={st.videoTitle}>Videolar</Text>
+              {videos.length > 0 && (
+                <View style={st.videoBadge}>
+                  <Text style={st.videoBadgeTxt}>{videos.length}</Text>
+                </View>
+              )}
+            </View>
+
+            {videos.length > 0 ? (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={st.thumbRow}
+                style={st.thumbScroll}
+              >
+                {videos.map(v => (
+                  <VideoThumbnailCard
+                    key={v.id}
+                    video={v}
+                    viewCount={viewCounts[v.id] ?? 0}
+                    onPlay={handleOpenPlayer}
+                    onDelete={removeVideo}
+                  />
+                ))}
+              </ScrollView>
+            ) : (
               <View style={st.videoEmpty}>
                 <Text style={st.videoEmptyTxt}>Henüz video yok</Text>
               </View>
-            ) : null}
-            <Pressable style={st.videoAddBtn}>
+            )}
+
+            <Pressable
+              style={({ pressed }) => [st.videoAddBtn, pressed && st.videoAddBtnPressed]}
+              onPress={handlePickVideo}
+            >
               <Text style={st.videoAddTxt}>+ Video Ekle</Text>
             </Pressable>
           </View>
+
+          {/* Title input modal */}
+          <Modal
+            visible={titleModalVisible}
+            transparent
+            animationType="slide"
+            onRequestClose={() => setTitleModalVisible(false)}
+          >
+            <KeyboardAvoidingView
+              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+              style={st.modalOverlay}
+            >
+              <View style={st.titleCard}>
+                <Text style={st.titleHeading}>Video Başlığı</Text>
+                <Text style={st.titleSub}>İsteğe bağlı — boş bırakabilirsiniz</Text>
+                <TextInput
+                  style={st.titleInput}
+                  placeholder="ör. Barre akoru çalışması"
+                  placeholderTextColor={C.textDim}
+                  value={titleInput}
+                  onChangeText={setTitleInput}
+                  maxLength={80}
+                  returnKeyType="done"
+                  onSubmitEditing={handleSaveVideo}
+                  autoFocus
+                  selectionColor={C.gold}
+                />
+                <View style={st.titleActions}>
+                  <Pressable
+                    style={st.cancelBtn}
+                    onPress={() => { setTitleModalVisible(false); setPendingUri(null); }}
+                  >
+                    <Text style={st.cancelTxt}>İptal</Text>
+                  </Pressable>
+                  <Pressable
+                    style={[st.saveBtn, isSavingVideo && st.saveBtnDisabled]}
+                    onPress={handleSaveVideo}
+                    disabled={isSavingVideo}
+                  >
+                    {isSavingVideo
+                      ? <ActivityIndicator size="small" color={C.bg} />
+                      : <Text style={st.saveTxt}>Ekle</Text>
+                    }
+                  </Pressable>
+                </View>
+              </View>
+            </KeyboardAvoidingView>
+          </Modal>
+
+          {/* Full-screen player */}
+          <VideoPlayerModal
+            video={playerVideo}
+            viewCount={playerVideo ? (viewCounts[playerVideo.id] ?? 0) : 0}
+            isVisible={playerVisible}
+            onClose={() => setPlayerVisible(false)}
+            onOpened={handlePlayerOpened}
+          />
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
@@ -363,9 +518,28 @@ const st = StyleSheet.create({
   body: { flex: 1 },
   bodyContent: { padding: 16, paddingBottom: 40 },
   videoSection: { marginTop: 8 },
-  videoTitle: { fontSize: 14, color: C.textMuted, fontWeight: '600', letterSpacing: 0.5, marginBottom: 10 },
+  videoHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
+  videoTitle: { fontSize: 14, color: C.textMuted, fontWeight: '600', letterSpacing: 0.5 },
+  videoBadge: { minWidth: 20, height: 20, borderRadius: 10, backgroundColor: C.gold, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5 },
+  videoBadgeTxt: { fontSize: 11, fontWeight: '700', color: C.bg },
+  thumbScroll: { marginBottom: 10 },
+  thumbRow: { paddingRight: 4 },
   videoEmpty: { alignItems: 'center', paddingVertical: 20, borderWidth: 1, borderColor: C.border, borderRadius: 12, borderStyle: 'dashed', marginBottom: 10 },
   videoEmptyTxt: { color: C.textDim, fontSize: 14 },
   videoAddBtn: { paddingVertical: 12, alignItems: 'center', borderWidth: 1, borderColor: C.goldBorder, borderRadius: 12, backgroundColor: 'rgba(201,168,76,0.05)' },
+  videoAddBtnPressed: { backgroundColor: 'rgba(201,168,76,0.12)' },
   videoAddTxt: { color: C.gold, fontSize: 14, fontWeight: '600' },
+  // Title input modal
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', justifyContent: 'flex-end' },
+  titleCard: { backgroundColor: '#12121E', borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 24, paddingTop: 24, paddingBottom: Platform.OS === 'ios' ? 40 : 24, gap: 10 },
+  titleHeading: { fontSize: 17, fontWeight: '700', color: C.text },
+  titleSub: { fontSize: 12, color: C.textMuted, marginTop: -4 },
+  titleInput: { backgroundColor: C.bg, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: C.text, borderWidth: 1, borderColor: C.border, marginTop: 4 },
+  titleActions: { flexDirection: 'row', gap: 10, marginTop: 4 },
+  cancelBtn: { flex: 1, paddingVertical: 13, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.07)', alignItems: 'center' },
+  cancelTxt: { fontSize: 15, fontWeight: '600', color: C.textMuted },
+  saveBtn: { flex: 2, paddingVertical: 13, borderRadius: 10, backgroundColor: C.gold, alignItems: 'center', justifyContent: 'center' },
+  saveBtnDisabled: { opacity: 0.55 },
+  // C.bg on C.gold: #080810 on #C9A84C → contrast ~6.4:1 ✅ WCAG AA
+  saveTxt: { fontSize: 15, fontWeight: '700', color: C.bg },
 });

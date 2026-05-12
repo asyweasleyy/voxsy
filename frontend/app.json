@@ -13,7 +13,10 @@
       "backgroundColor": "#080810"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Voxsy, pratik videolarını günlüğüne eklemek için galeri erişimi istiyor."
+      }
     },
     "android": {
       "adaptiveIcon": {
