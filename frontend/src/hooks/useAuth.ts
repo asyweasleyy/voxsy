@@ -14,11 +14,21 @@ export function useAuth(): AuthState {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getCurrentSession().then((s) => {
-      setSession(s);
-      setUser(s?.user ?? null);
-      setLoading(false);
-    });
+    let cancelled = false;
+
+    getCurrentSession()
+      .then((s) => {
+        if (!cancelled) {
+          setSession(s);
+          setUser(s?.user ?? null);
+        }
+      })
+      .catch(() => {
+        // session check failed — treat as unauthenticated
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
 
     const subscription = onAuthStateChange((_event, s) => {
       setSession(s);
@@ -26,7 +36,10 @@ export function useAuth(): AuthState {
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
   }, []);
 
   return { user, session, loading };

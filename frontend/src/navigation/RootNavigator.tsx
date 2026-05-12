@@ -10,7 +10,7 @@ export default function RootNavigator() {
   if (loading) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#080810' }}>
-        <ActivityIndicator color="#C9A84C" size="large" />
+        <ActivityIndicator testID="loading-spinner" color="#C9A84C" size="large" />
       </View>
     );
   }
