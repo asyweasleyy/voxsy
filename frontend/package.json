@@ -7,6 +7,9 @@
     "android": "node ./scripts/expo-cli-system-ca.js start --android",
     "ios": "node ./scripts/expo-cli-system-ca.js start --ios",
     "web": "node ./scripts/expo-cli-system-ca.js start --web",
+    "eas:login": "node ./scripts/eas-system-ca.js login",
+    "eas:build:preview": "node ./scripts/eas-system-ca.js build --platform android --profile preview",
+    "eas:build:production": "node ./scripts/eas-system-ca.js build --platform android --profile production",
     "test": "jest --watchAll=false",
     "test:coverage": "jest --coverage --watchAll=false"
   },
