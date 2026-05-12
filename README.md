@@ -1,2 +1,1 @@
-# voxsy
-Music practice journal app
+# Voxsy
