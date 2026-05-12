@@ -177,9 +177,8 @@ export default function InstrumentSelectionScreen({ navigation }: Props) {
     setError('');
     try {
       await setUserInstruments(user.id, Array.from(selected));
-      // Session is already set from registration; RootNavigator will switch to
-      // MainTabs automatically. Reset auth stack so there's no stale history.
-      navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+      // RootNavigator detects the session and switches to MainTabs automatically.
+      // No manual navigation needed here.
     } catch {
       setError('Kaydedilemedi. Lütfen tekrar dene.');
     } finally {
