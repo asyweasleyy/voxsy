@@ -12,7 +12,7 @@ import {
   Animated,
   StatusBar,
 } from 'react-native';
-import { StackNavigationProp } from '@react-navigation/stack';
+import { NativeStackNavigationProp as StackNavigationProp } from '@react-navigation/native-stack';
 import { signUp } from '../../services/auth.service';
 import { AuthStackParamList } from '../../navigation/AuthStack';
 

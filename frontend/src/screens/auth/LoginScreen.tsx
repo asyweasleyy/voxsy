@@ -13,7 +13,7 @@ import {
   Dimensions,
   StatusBar,
 } from 'react-native';
-import { StackNavigationProp } from '@react-navigation/stack';
+import { NativeStackNavigationProp as StackNavigationProp } from '@react-navigation/native-stack';
 import { signIn } from '../../services/auth.service';
 import { AuthStackParamList } from '../../navigation/AuthStack';
 
