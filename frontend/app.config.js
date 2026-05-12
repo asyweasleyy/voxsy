@@ -48,6 +48,7 @@ export default {
     web: {
       favicon: './assets/favicon.png',
     },
+    plugins: ['expo-video'],
     extra: {
       appEnv: APP_ENV,
       supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,

@@ -40,6 +40,17 @@ const C = {
 };
 
 const SERIF = Platform.OS === 'ios' ? 'Georgia' : 'serif';
+const USE_NATIVE_DRIVER = Platform.OS !== 'web';
+const PRIMARY_BTN_SHADOW =
+  Platform.OS === 'web'
+    ? { boxShadow: '0px 6px 18px rgba(201,168,76,0.35)' }
+    : {
+        shadowColor: C.gold,
+        shadowOpacity: 0.4,
+        shadowRadius: 14,
+        shadowOffset: { width: 0, height: 6 },
+        elevation: 8,
+      };
 
 function VinylRings({ pulse }: { pulse: Animated.Value }) {
   return (
@@ -127,13 +138,13 @@ export default function LoginScreen({ navigation }: Props) {
 
   useEffect(() => {
     Animated.parallel([
-      Animated.timing(fadeAnim, { toValue: 1, duration: 650, useNativeDriver: true }),
-      Animated.timing(slideAnim, { toValue: 0, duration: 650, useNativeDriver: true }),
+      Animated.timing(fadeAnim, { toValue: 1, duration: 650, useNativeDriver: USE_NATIVE_DRIVER }),
+      Animated.timing(slideAnim, { toValue: 0, duration: 650, useNativeDriver: USE_NATIVE_DRIVER }),
     ]).start();
     Animated.loop(
       Animated.sequence([
-        Animated.timing(pulseAnim, { toValue: 1.04, duration: 2800, useNativeDriver: true }),
-        Animated.timing(pulseAnim, { toValue: 1, duration: 2800, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1.04, duration: 2800, useNativeDriver: USE_NATIVE_DRIVER }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 2800, useNativeDriver: USE_NATIVE_DRIVER }),
       ])
     ).start();
   }, []);
@@ -226,7 +237,15 @@ const styles = StyleSheet.create({
   inputRight: { paddingRight: 14 },
   eyeBtn: { color: C.textMuted, fontSize: 16 },
   gap: { height: 12 },
-  primaryBtn: { height: 54, borderRadius: 14, backgroundColor: C.gold, alignItems: 'center', justifyContent: 'center', marginTop: 20, shadowColor: C.gold, shadowOpacity: 0.4, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 8 },
+  primaryBtn: {
+    height: 54,
+    borderRadius: 14,
+    backgroundColor: C.gold,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 20,
+    ...PRIMARY_BTN_SHADOW,
+  },
   primaryBtnText: { color: '#080810', fontSize: 15, fontWeight: '700', letterSpacing: 1.2 },
   footer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 24 },
   footerText: { color: C.textMuted, fontSize: 14 },

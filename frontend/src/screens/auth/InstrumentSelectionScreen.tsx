@@ -49,6 +49,17 @@ const C = {
 } as const;
 
 const SERIF = Platform.OS === 'ios' ? 'Georgia' : 'serif';
+const USE_NATIVE_DRIVER = Platform.OS !== 'web';
+const CTA_SHADOW =
+  Platform.OS === 'web'
+    ? { boxShadow: '0px 5px 16px rgba(201,168,76,0.32)' }
+    : {
+        shadowColor: C.gold,
+        shadowOpacity: 0.38,
+        shadowRadius: 14,
+        shadowOffset: { width: 0, height: 5 },
+        elevation: 8,
+      };
 
 // ─── Instrument card ─────────────────────────────────────────────────────────
 
@@ -75,7 +86,7 @@ function InstrumentCard({
       }),
       Animated.spring(check, {
         toValue: selected ? 1 : 0,
-        useNativeDriver: true,
+        useNativeDriver: USE_NATIVE_DRIVER,
         tension: 220,
         friction: 10,
       }),
@@ -96,9 +107,9 @@ function InstrumentCard({
   });
 
   const onPressIn = () =>
-    Animated.spring(scale, { toValue: 0.92, useNativeDriver: true, tension: 300, friction: 10 }).start();
+    Animated.spring(scale, { toValue: 0.92, useNativeDriver: USE_NATIVE_DRIVER, tension: 300, friction: 10 }).start();
   const onPressOut = () =>
-    Animated.spring(scale, { toValue: 1, useNativeDriver: true, tension: 200, friction: 8 }).start();
+    Animated.spring(scale, { toValue: 1, useNativeDriver: USE_NATIVE_DRIVER, tension: 200, friction: 8 }).start();
 
   return (
     <Pressable
@@ -147,8 +158,8 @@ export default function InstrumentSelectionScreen({ navigation }: Props) {
 
   useEffect(() => {
     Animated.parallel([
-      Animated.timing(fadeAnim, { toValue: 1, duration: 550, useNativeDriver: true }),
-      Animated.spring(slideAnim, { toValue: 0, tension: 80, friction: 10, useNativeDriver: true }),
+      Animated.timing(fadeAnim, { toValue: 1, duration: 550, useNativeDriver: USE_NATIVE_DRIVER }),
+      Animated.spring(slideAnim, { toValue: 0, tension: 80, friction: 10, useNativeDriver: USE_NATIVE_DRIVER }),
     ]).start();
   }, []);
 
@@ -214,7 +225,7 @@ export default function InstrumentSelectionScreen({ navigation }: Props) {
   return (
     <SafeAreaView style={styles.root}>
       <StatusBar barStyle="light-content" backgroundColor={C.bg} />
-      <View style={styles.glowTop} pointerEvents="none" />
+      <View style={styles.glowTop} />
 
       <FlatList
         data={instruments}
@@ -308,6 +319,7 @@ const styles = StyleSheet.create({
     backgroundColor: C.goldGlow,
     top: -80,
     alignSelf: 'center',
+    pointerEvents: 'none',
   },
 
   listContent: { paddingHorizontal: 16, paddingBottom: 16 },
@@ -421,16 +433,11 @@ const styles = StyleSheet.create({
     backgroundColor: C.gold,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: C.gold,
-    shadowOpacity: 0.38,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 5 },
-    elevation: 8,
+    ...CTA_SHADOW,
   },
   devamBtnDisabled: {
     backgroundColor: C.surface,
-    shadowOpacity: 0,
-    elevation: 0,
+    ...(Platform.OS === 'web' ? { boxShadow: 'none' } : { shadowOpacity: 0, elevation: 0 }),
   },
   devamBtnText: {
     color: C.bg,

@@ -1,5 +1,5 @@
-import { ResizeMode, Video } from 'expo-av';
-import React, { useCallback, useRef } from 'react';
+import React, { useCallback, useEffect } from 'react';
+import { VideoView, useVideoPlayer } from 'expo-video';
 import {
   Modal,
   Pressable,
@@ -19,20 +19,29 @@ interface Props {
   onOpened: () => void;
 }
 
-export function VideoPlayerModal({ video, viewCount, isVisible, onClose, onOpened }: Props) {
-  const videoRef = useRef<Video>(null);
+type VideoPlayerModalContentProps = Omit<Props, 'video'> & {
+  video: JournalVideo;
+};
 
-  const handleClose = useCallback(async () => {
-    await videoRef.current?.pauseAsync();
-    onClose();
-  }, [onClose]);
+function VideoPlayerModalContent({ video, viewCount, isVisible, onClose, onOpened }: VideoPlayerModalContentProps) {
+  const player = useVideoPlayer({ uri: video.local_uri }, (videoPlayer) => {
+    videoPlayer.loop = false;
+  });
 
-  const handleLoad = useCallback(() => {
+  useEffect(() => {
+    if (!isVisible) {
+      player.pause();
+      return;
+    }
+
     onOpened();
-    videoRef.current?.playAsync();
-  }, [onOpened]);
+    player.play();
+  }, [isVisible, onOpened, player]);
 
-  if (!video) return null;
+  const handleClose = useCallback(() => {
+    player.pause();
+    onClose();
+  }, [onClose, player]);
 
   return (
     <Modal
@@ -61,15 +70,7 @@ export function VideoPlayerModal({ video, viewCount, isVisible, onClose, onOpene
         </View>
 
         <View style={styles.playerWrap}>
-          <Video
-            ref={videoRef}
-            source={{ uri: video.local_uri }}
-            style={styles.videoView}
-            resizeMode={ResizeMode.CONTAIN}
-            useNativeControls
-            onLoad={handleLoad}
-            isLooping={false}
-          />
+          <VideoView style={styles.videoView} player={player} contentFit="contain" nativeControls />
         </View>
 
         <View style={styles.footer}>
@@ -77,6 +78,21 @@ export function VideoPlayerModal({ video, viewCount, isVisible, onClose, onOpene
         </View>
       </SafeAreaView>
     </Modal>
+  );
+}
+
+export function VideoPlayerModal({ video, viewCount, isVisible, onClose, onOpened }: Props) {
+  if (!video) return null;
+
+  return (
+    <VideoPlayerModalContent
+      key={video.id}
+      video={video}
+      viewCount={viewCount}
+      isVisible={isVisible}
+      onClose={onClose}
+      onOpened={onOpened}
+    />
   );
 }
 

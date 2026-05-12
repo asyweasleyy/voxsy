@@ -37,6 +37,7 @@ const C = {
 };
 
 const SERIF = Platform.OS === 'ios' ? 'Georgia' : 'serif';
+const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 
 function passwordStrength(pw: string): { score: number; label: string; color: string } {
   let score = 0;
@@ -94,8 +95,8 @@ export default function RegisterScreen({ navigation }: Props) {
 
   useEffect(() => {
     Animated.parallel([
-      Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
-      Animated.timing(slideAnim, { toValue: 0, duration: 600, useNativeDriver: true }),
+      Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: USE_NATIVE_DRIVER }),
+      Animated.timing(slideAnim, { toValue: 0, duration: 600, useNativeDriver: USE_NATIVE_DRIVER }),
     ]).start();
   }, []);
 

@@ -45,6 +45,7 @@ const C = {
 };
 
 const SERIF = Platform.OS === 'ios' ? 'Georgia' : 'serif';
+const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 
 const TR_MONTHS = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
 const TR_DAYS = ['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'];
@@ -67,7 +68,7 @@ function SwipeRow({ onDelete, children }: { onDelete: () => void; children: Reac
 
   const snapBack = () => {
     Animated.parallel([
-      Animated.spring(tx, { toValue: 0, useNativeDriver: true, tension: 130, friction: 9 }),
+      Animated.spring(tx, { toValue: 0, useNativeDriver: USE_NATIVE_DRIVER, tension: 130, friction: 9 }),
       Animated.timing(reveal, { toValue: 0, duration: 180, useNativeDriver: false }),
     ]).start();
   };
@@ -82,7 +83,7 @@ function SwipeRow({ onDelete, children }: { onDelete: () => void; children: Reac
     },
     onPanResponderRelease: (_, g) => {
       if (g.dx < -38) {
-        Animated.spring(tx, { toValue: -76, useNativeDriver: true, tension: 140, friction: 8 }).start();
+        Animated.spring(tx, { toValue: -76, useNativeDriver: USE_NATIVE_DRIVER, tension: 140, friction: 8 }).start();
       } else {
         snapBack();
       }
@@ -155,7 +156,7 @@ function JournalSection({ type, label, color, dim, icon, items, onAdd, onDelete,
   const chevronAnim = useRef(new Animated.Value(1)).current;
 
   const toggleCollapse = () => {
-    Animated.timing(chevronAnim, { toValue: collapsed ? 1 : 0, duration: 210, useNativeDriver: true }).start();
+    Animated.timing(chevronAnim, { toValue: collapsed ? 1 : 0, duration: 210, useNativeDriver: USE_NATIVE_DRIVER }).start();
     setCollapsed(v => !v);
   };
 
