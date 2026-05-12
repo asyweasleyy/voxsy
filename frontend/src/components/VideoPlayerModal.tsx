@@ -1,5 +1,5 @@
-import { useVideoPlayer, VideoView } from 'expo-video';
-import React, { useCallback, useEffect, useRef } from 'react';
+import { ResizeMode, Video } from 'expo-av';
+import React, { useCallback, useRef } from 'react';
 import {
   Modal,
   Pressable,
@@ -20,27 +20,17 @@ interface Props {
 }
 
 export function VideoPlayerModal({ video, viewCount, isVisible, onClose, onOpened }: Props) {
-  const hasNotifiedRef = useRef(false);
+  const videoRef = useRef<Video>(null);
 
-  const player = useVideoPlayer(
-    video ? { uri: video.local_uri } : null,
-    (p) => { p.loop = false; },
-  );
-
-  useEffect(() => {
-    if (isVisible && video && !hasNotifiedRef.current) {
-      hasNotifiedRef.current = true;
-      onOpened();
-    }
-    if (!isVisible) {
-      hasNotifiedRef.current = false;
-    }
-  }, [isVisible, video, onOpened]);
-
-  const handleClose = useCallback(() => {
-    player.pause();
+  const handleClose = useCallback(async () => {
+    await videoRef.current?.pauseAsync();
     onClose();
-  }, [player, onClose]);
+  }, [onClose]);
+
+  const handleLoad = useCallback(() => {
+    onOpened();
+    videoRef.current?.playAsync();
+  }, [onOpened]);
 
   if (!video) return null;
 
@@ -54,12 +44,10 @@ export function VideoPlayerModal({ video, viewCount, isVisible, onClose, onOpene
     >
       <StatusBar backgroundColor="#000" barStyle="light-content" />
       <SafeAreaView style={styles.safeArea}>
-        {/* Header */}
         <View style={styles.header}>
           <Pressable
             style={({ pressed }) => [styles.closeBtn, pressed && styles.closeBtnPressed]}
             onPress={handleClose}
-            accessible
             accessibilityRole="button"
             accessibilityLabel="Kapat"
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
@@ -69,23 +57,21 @@ export function VideoPlayerModal({ video, viewCount, isVisible, onClose, onOpene
           <Text style={styles.headerTitle} numberOfLines={1} ellipsizeMode="tail">
             {video.title ?? 'Video'}
           </Text>
-          {/* Mirror spacer to optically center the title */}
           <View style={styles.headerSpacer} />
         </View>
 
-        {/* Player */}
         <View style={styles.playerWrap}>
-          <VideoView
+          <Video
+            ref={videoRef}
+            source={{ uri: video.local_uri }}
             style={styles.videoView}
-            player={player}
-            allowsFullscreen
-            allowsPictureInPicture={false}
-            nativeControls
-            contentFit="contain"
+            resizeMode={ResizeMode.CONTAIN}
+            useNativeControls
+            onLoad={handleLoad}
+            isLooping={false}
           />
         </View>
 
-        {/* Footer */}
         <View style={styles.footer}>
           <Text style={styles.viewCountTxt}>👁 {viewCount} izlenme</Text>
         </View>
@@ -95,10 +81,7 @@ export function VideoPlayerModal({ video, viewCount, isVisible, onClose, onOpene
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#000',
-  },
+  safeArea: { flex: 1, backgroundColor: '#000' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -113,15 +96,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  closeBtnPressed: {
-    backgroundColor: 'rgba(255,255,255,0.22)',
-  },
-  closeIcon: {
-    fontSize: 14,
-    // Light on black: #F0F0F0 on #000 → 19:1 ✅
-    color: '#F0F0F0',
-    fontWeight: '700',
-  },
+  closeBtnPressed: { backgroundColor: 'rgba(255,255,255,0.22)' },
+  closeIcon: { fontSize: 14, color: '#F0F0F0', fontWeight: '700' },
   headerTitle: {
     flex: 1,
     textAlign: 'center',
@@ -130,26 +106,9 @@ const styles = StyleSheet.create({
     color: '#F0EBE3',
     marginHorizontal: 8,
   },
-  headerSpacer: {
-    width: 36,
-  },
-  playerWrap: {
-    flex: 1,
-    backgroundColor: '#000',
-    justifyContent: 'center',
-  },
-  videoView: {
-    flex: 1,
-  },
-  footer: {
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  viewCountTxt: {
-    fontSize: 13,
-    // muted on black: #888 → 5.7:1 ✅ WCAG AA
-    color: '#888',
-    fontWeight: '500',
-  },
+  headerSpacer: { width: 36 },
+  playerWrap: { flex: 1, backgroundColor: '#000', justifyContent: 'center' },
+  videoView: { flex: 1 },
+  footer: { paddingHorizontal: 20, paddingVertical: 14, alignItems: 'center' },
+  viewCountTxt: { fontSize: 13, color: '#888', fontWeight: '500' },
 });
