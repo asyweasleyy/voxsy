@@ -53,6 +53,9 @@ export default {
       appEnv: APP_ENV,
       supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,
       supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
+      eas: {
+        projectId: '113d789b-5ecd-4f58-9294-35664017e2c6',
+      },
     },
   },
 };
