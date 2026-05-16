@@ -44,6 +44,8 @@ export default {
         backgroundColor: '#080810',
       },
       package: androidPackage,
+      edgeToEdgeEnabled: true,
+      predictiveBackGestureEnabled: false,
     },
     web: {
       favicon: './assets/favicon.png',
